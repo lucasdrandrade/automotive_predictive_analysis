@@ -15,7 +15,7 @@ from charts import (
 
 DATA_PATH = os.path.join(
     os.path.dirname(__file__),
-    "Data_Set", "engine_data.csv", "engine_data.csv",
+    "Data_Set", "engine_data.csv",
 )
 df_full = load_data(DATA_PATH)
 rpm_min = int(df_full["engine_rpm"].min())
