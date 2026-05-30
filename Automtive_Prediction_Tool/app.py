@@ -3,7 +3,7 @@ import dash
 from dash import dcc, html, Input, Output, dash_table
 import dash_bootstrap_components as dbc
 
-from data_loader import load_data, compute_stats, SENSOR_LABELS
+from data_loader import load_data, compute_stats, SENSOR_LABELS, ALL_FEATURE_LABELS
 from charts import (
     condition_donut,
     sensor_means_bar,
@@ -11,6 +11,10 @@ from charts import (
     correlation_heatmap,
     scatter_plot,
     line_chart,
+    feature_importance_bar,
+    derived_distributions,
+    health_score_gauge,
+    regression_importance_bar,
 )
 
 DATA_PATH = os.path.join(
@@ -23,7 +27,7 @@ rpm_max = int(df_full["engine_rpm"].max())
 
 sensor_options = [
     {"label": label.replace(" (°C)", ""), "value": col}
-    for col, label in SENSOR_LABELS.items()
+    for col, label in ALL_FEATURE_LABELS.items()
 ]
 
 app = dash.Dash(
@@ -91,6 +95,32 @@ app.layout = dbc.Container([
         dbc.Col(kpi_card("Fault Rate",       "kpi-rate",    "warning"), md=3, className="mb-3"),
     ], className="g-3 mb-1"),
 
+    # Feature Importance — Pearson + Logistic Regression side by side
+    dbc.Row([
+        dbc.Col(
+            dbc.Card(dbc.CardBody([
+                html.P(
+                    "Univariate — measures each feature independently against the target. "
+                    "Saturated = derived features, muted = raw sensors.",
+                    className="text-muted small mb-0",
+                ),
+                dcc.Graph(id="feature-importance-chart", config={"displayModeBar": False}),
+            ]), className="shadow-sm h-100"),
+            md=6, className="mb-4",
+        ),
+        dbc.Col(
+            dbc.Card(dbc.CardBody([
+                html.P(
+                    "Multivariate — coefficients from Logistic Regression with all features "
+                    "standardised (mean=0, std=1). Controls for inter-feature correlations.",
+                    className="text-muted small mb-0",
+                ),
+                dcc.Graph(id="regression-importance-chart", config={"displayModeBar": False}),
+            ]), className="shadow-sm h-100"),
+            md=6, className="mb-4",
+        ),
+    ], className="g-3"),
+
     # Donut + Grouped bar
     dbc.Row([
         dbc.Col(dbc.Card(dcc.Graph(id="donut-chart", config={"displayModeBar": False}), className="shadow-sm"), md=5, className="mb-4"),
@@ -103,6 +133,18 @@ app.layout = dbc.Container([
         className="mb-4",
     )),
 
+    # Derived Features Analysis
+    dbc.Row([
+        dbc.Col(
+            dbc.Card(dcc.Graph(id="health-gauge", config={"displayModeBar": False}), className="shadow-sm"),
+            md=4, className="mb-4",
+        ),
+        dbc.Col(
+            dbc.Card(dcc.Graph(id="derived-dist-chart"), className="shadow-sm"),
+            md=8, className="mb-4",
+        ),
+    ], className="g-3"),
+
     # Correlation heatmap + Scatter
     dbc.Row([
         dbc.Col(dbc.Card(dcc.Graph(id="heatmap-chart"), className="shadow-sm"), md=6, className="mb-4"),
@@ -114,7 +156,7 @@ app.layout = dbc.Container([
                 ], md=6),
                 dbc.Col([
                     html.Label("Y Axis", className="small fw-semibold text-muted"),
-                    dcc.Dropdown(id="scatter-y", options=sensor_options, value="coolant_temp", clearable=False),
+                    dcc.Dropdown(id="scatter-y", options=sensor_options, value="fuel_pressure", clearable=False),
                 ], md=6),
             ], className="mb-2"),
             dcc.Graph(id="scatter-chart"),
@@ -250,6 +292,24 @@ def update_table(condition, rpm_range):
     )
     note = f"Showing {min(limit, total):,} of {total:,} rows"
     return table, note
+
+
+@app.callback(
+    Output("feature-importance-chart",  "figure"),
+    Output("regression-importance-chart", "figure"),
+    Output("health-gauge",              "figure"),
+    Output("derived-dist-chart",        "figure"),
+    Input("condition-filter",           "value"),
+    Input("rpm-range",                  "value"),
+)
+def update_analysis(condition, rpm_range):
+    dff = apply_filters(condition, rpm_range)
+    return (
+        feature_importance_bar(dff),
+        regression_importance_bar(dff),
+        health_score_gauge(dff, df_full),
+        derived_distributions(dff),
+    )
 
 
 if __name__ == "__main__":

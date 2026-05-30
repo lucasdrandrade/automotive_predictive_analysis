@@ -3,7 +3,11 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 
-from data_loader import SENSOR_COLS, SENSOR_LABELS, CONDITION_LABELS, CONDITION_COLORS
+from data_loader import (
+    SENSOR_COLS, SENSOR_LABELS, CONDITION_LABELS, CONDITION_COLORS,
+    DERIVED_COLS, DERIVED_LABELS,
+    compute_feature_correlations, compute_health_score, compute_regression_coefficients,
+)
 
 _EMPTY = go.Figure().update_layout(
     paper_bgcolor="rgba(0,0,0,0)",
@@ -156,6 +160,7 @@ def scatter_plot(df: pd.DataFrame, x_col: str, y_col: str, max_points: int = 200
 def line_chart(df: pd.DataFrame, sensor_col: str, max_points: int = 3000) -> go.Figure:
     if df.empty:
         return _EMPTY
+    from data_loader import ALL_FEATURE_LABELS
     step = max(1, len(df) // max_points)
     sampled = df.iloc[::step]
     fig = go.Figure()
@@ -170,9 +175,177 @@ def line_chart(df: pd.DataFrame, sensor_col: str, max_points: int = 3000) -> go.
         ))
     fig.update_layout(
         xaxis_title="Reading Index",
-        yaxis_title=SENSOR_LABELS.get(sensor_col, sensor_col),
+        yaxis_title=ALL_FEATURE_LABELS.get(sensor_col, sensor_col),
         legend=dict(orientation="h", y=1.0, x=0.5, xanchor="center"),
         margin=dict(t=20, b=50, l=60, r=10),
         height=350,
+    )
+    return fig
+
+
+def feature_importance_bar(df: pd.DataFrame) -> go.Figure:
+    if df.empty or len(df) < 2:
+        return _EMPTY
+    corr_df = compute_feature_correlations(df)
+
+    colors = []
+    for _, row in corr_df.iterrows():
+        if row["is_derived"]:
+            colors.append("#27ae60" if row["correlation"] >= 0 else "#e74c3c")
+        else:
+            colors.append("#7dcea0" if row["correlation"] >= 0 else "#f1948a")
+
+    labels_display = [
+        f"★ {row['label']}" if row["is_derived"] else row["label"]
+        for _, row in corr_df.iterrows()
+    ]
+
+    max_abs = float(corr_df["abs_corr"].max())
+    x_range = max_abs * 1.45
+
+    fig = go.Figure(go.Bar(
+        x=corr_df["correlation"],
+        y=labels_display,
+        orientation="h",
+        marker_color=colors,
+        text=[f"{v:+.3f}" for v in corr_df["correlation"]],
+        textposition="outside",
+        hovertemplate="<b>%{y}</b><br>Correlation with Engine Condition: %{x:.3f}<extra></extra>",
+    ))
+    fig.add_vline(x=0, line_width=1.5, line_color="#555")
+    fig.update_layout(
+        title=dict(
+            text="Feature Correlation with Engine Condition  (★ = Derived Feature)",
+            font=dict(size=14),
+        ),
+        xaxis=dict(
+            title="Pearson Correlation (r)",
+            range=[-x_range, x_range],
+            zeroline=False,
+            gridcolor="#e8e8e8",
+        ),
+        yaxis=dict(tickfont=dict(size=12)),
+        plot_bgcolor="rgba(248,249,250,1)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=60, b=40, l=180, r=90),
+        height=420,
+    )
+    return fig
+
+
+def derived_distributions(df: pd.DataFrame) -> go.Figure:
+    if df.empty:
+        return _EMPTY
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=["Oil Efficiency  (1 / RPM × Oil Temp)", "Coolant Efficiency  (Coolant Temp / RPM)"],
+    )
+    for idx, col in enumerate(["oil_efficiency", "coolant_efficiency"], start=1):
+        for cond in sorted(df["engine_condition"].unique(), reverse=True):
+            subset = df[df["engine_condition"] == cond][col]
+            fig.add_trace(
+                go.Violin(
+                    y=subset,
+                    name=CONDITION_LABELS.get(cond, str(cond)),
+                    marker_color=CONDITION_COLORS.get(cond, "#95a5a6"),
+                    box_visible=True,
+                    meanline_visible=True,
+                    showlegend=(idx == 1),
+                    legendgroup=CONDITION_LABELS.get(cond, str(cond)),
+                ),
+                row=1, col=idx,
+            )
+    fig.update_layout(
+        title="Derived Feature Distributions by Engine Condition",
+        violinmode="group",
+        height=380,
+        margin=dict(t=60, b=30, l=60, r=20),
+        legend=dict(orientation="h", y=1.5, x=0.5, xanchor="center"),
+    )
+    return fig
+
+
+def health_score_gauge(df: pd.DataFrame, df_full: pd.DataFrame) -> go.Figure:
+    if df.empty:
+        return _EMPTY
+    scores = compute_health_score(df, df_full)
+    mean_score = float(scores.mean())
+    bar_color = "#27ae60" if mean_score >= 60 else "#f39c12" if mean_score >= 40 else "#e74c3c"
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=mean_score,
+        number={"suffix": "%", "font": {"size": 40}},
+        gauge={
+            "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "gray"},
+            "bar": {"color": bar_color},
+            "steps": [
+                {"range": [0,  40], "color": "#fde8e8"},
+                {"range": [40, 70], "color": "#fef9e7"},
+                {"range": [70, 100], "color": "#eafaf1"},
+            ],
+            "threshold": {
+                "line": {"color": "black", "width": 3},
+                "thickness": 0.75,
+                "value": mean_score,
+            },
+        },
+    ))
+    fig.update_layout(
+        title=dict(text="Engine Health Score", font=dict(size=15), x=0.5, xanchor="center"),
+        margin=dict(t=70, b=20, l=30, r=30),
+        height=300,
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+    return fig
+
+
+def regression_importance_bar(df: pd.DataFrame) -> go.Figure:
+    if df.empty or len(df) < 50:
+        return _EMPTY
+    coef_df = compute_regression_coefficients(df)
+    if coef_df.empty:
+        return _EMPTY
+
+    colors = []
+    for _, row in coef_df.iterrows():
+        if row["is_derived"]:
+            colors.append("#27ae60" if row["coefficient"] >= 0 else "#e74c3c")
+        else:
+            colors.append("#7dcea0" if row["coefficient"] >= 0 else "#f1948a")
+
+    labels_display = [
+        f"★ {row['label']}" if row["is_derived"] else row["label"]
+        for _, row in coef_df.iterrows()
+    ]
+
+    max_abs = float(coef_df["abs_coef"].max())
+    x_range = max_abs * 1.45
+
+    fig = go.Figure(go.Bar(
+        x=coef_df["coefficient"],
+        y=labels_display,
+        orientation="h",
+        marker_color=colors,
+        text=[f"{v:+.3f}" for v in coef_df["coefficient"]],
+        textposition="outside",
+        hovertemplate="<b>%{y}</b><br>Standardised Coefficient: %{x:.3f}<extra></extra>",
+    ))
+    fig.add_vline(x=0, line_width=1.5, line_color="#555")
+    fig.update_layout(
+        title=dict(
+            text="Feature Importance via Logistic Regression  (★ = Derived Feature)",
+            font=dict(size=14),
+        ),
+        xaxis=dict(
+            title="Standardised Coefficient (features scaled to mean=0, std=1)",
+            range=[-x_range, x_range],
+            zeroline=False,
+            gridcolor="#e8e8e8",
+        ),
+        yaxis=dict(tickfont=dict(size=12)),
+        plot_bgcolor="rgba(248,249,250,1)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=60, b=50, l=180, r=90),
+        height=420,
     )
     return fig
