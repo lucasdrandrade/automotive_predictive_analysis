@@ -85,6 +85,30 @@ def compute_feature_correlations(df: pd.DataFrame) -> pd.DataFrame:
     return result.sort_values("abs_corr", ascending=True).reset_index(drop=True)
 
 
+def compute_regression_coefficients(df: pd.DataFrame) -> pd.DataFrame:
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.linear_model import LogisticRegression
+
+    if len(df) < 50 or df["engine_condition"].nunique() < 2:
+        return pd.DataFrame(columns=["feature", "label", "coefficient", "is_derived", "abs_coef"])
+
+    X = df[ALL_FEATURE_COLS].values
+    y = df["engine_condition"].values
+    X_scaled = StandardScaler().fit_transform(X)
+    model = LogisticRegression(max_iter=1000, random_state=42)
+    model.fit(X_scaled, y)
+
+    coefs = model.coef_[0]
+    result = pd.DataFrame({
+        "feature":     ALL_FEATURE_COLS,
+        "label":       [ALL_FEATURE_LABELS.get(c, c) for c in ALL_FEATURE_COLS],
+        "coefficient": coefs,
+        "is_derived":  [c in DERIVED_COLS for c in ALL_FEATURE_COLS],
+    })
+    result["abs_coef"] = result["coefficient"].abs()
+    return result.sort_values("abs_coef", ascending=True).reset_index(drop=True)
+
+
 def compute_health_score(df: pd.DataFrame, ref_df: pd.DataFrame) -> pd.Series:
     import numpy as np
     ref_oil  = np.sort(ref_df["oil_efficiency"].values)

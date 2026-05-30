@@ -14,6 +14,7 @@ from charts import (
     feature_importance_bar,
     derived_distributions,
     health_score_gauge,
+    regression_importance_bar,
 )
 
 DATA_PATH = os.path.join(
@@ -94,18 +95,31 @@ app.layout = dbc.Container([
         dbc.Col(kpi_card("Fault Rate",       "kpi-rate",    "warning"), md=3, className="mb-3"),
     ], className="g-3 mb-1"),
 
-    # Feature Importance
-    dbc.Row(dbc.Col(
-        dbc.Card(dbc.CardBody([
-            html.P(
-                "Saturated colours = derived features (Oil Efficiency, Coolant Efficiency). "
-                "Muted colours = raw sensor readings.",
-                className="text-muted small mb-0",
-            ),
-            dcc.Graph(id="feature-importance-chart", config={"displayModeBar": False}),
-        ]), className="shadow-sm"),
-        className="mb-4",
-    )),
+    # Feature Importance — Pearson + Logistic Regression side by side
+    dbc.Row([
+        dbc.Col(
+            dbc.Card(dbc.CardBody([
+                html.P(
+                    "Univariate — measures each feature independently against the target. "
+                    "Saturated = derived features, muted = raw sensors.",
+                    className="text-muted small mb-0",
+                ),
+                dcc.Graph(id="feature-importance-chart", config={"displayModeBar": False}),
+            ]), className="shadow-sm h-100"),
+            md=6, className="mb-4",
+        ),
+        dbc.Col(
+            dbc.Card(dbc.CardBody([
+                html.P(
+                    "Multivariate — coefficients from Logistic Regression with all features "
+                    "standardised (mean=0, std=1). Controls for inter-feature correlations.",
+                    className="text-muted small mb-0",
+                ),
+                dcc.Graph(id="regression-importance-chart", config={"displayModeBar": False}),
+            ]), className="shadow-sm h-100"),
+            md=6, className="mb-4",
+        ),
+    ], className="g-3"),
 
     # Donut + Grouped bar
     dbc.Row([
@@ -281,16 +295,18 @@ def update_table(condition, rpm_range):
 
 
 @app.callback(
-    Output("feature-importance-chart", "figure"),
-    Output("health-gauge",             "figure"),
-    Output("derived-dist-chart",       "figure"),
-    Input("condition-filter",          "value"),
-    Input("rpm-range",                 "value"),
+    Output("feature-importance-chart",  "figure"),
+    Output("regression-importance-chart", "figure"),
+    Output("health-gauge",              "figure"),
+    Output("derived-dist-chart",        "figure"),
+    Input("condition-filter",           "value"),
+    Input("rpm-range",                  "value"),
 )
 def update_analysis(condition, rpm_range):
     dff = apply_filters(condition, rpm_range)
     return (
         feature_importance_bar(dff),
+        regression_importance_bar(dff),
         health_score_gauge(dff, df_full),
         derived_distributions(dff),
     )
