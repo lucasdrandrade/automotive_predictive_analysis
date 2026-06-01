@@ -33,7 +33,7 @@ sensor_options = [
 app = dash.Dash(
     __name__,
     external_stylesheets=[dbc.themes.BOOTSTRAP],
-    title="Engine Analytics",
+    title="Análise de Motor",
 )
 server = app.server
 
@@ -50,22 +50,22 @@ def kpi_card(title, value_id, color="dark"):
 
 app.layout = dbc.Container([
 
-    # Header
+    # Cabeçalho
     dbc.Row(dbc.Col(html.Div([
-        html.H3("Engine Health Analytics", className="mb-0 fw-bold"),
-        html.Small("Automotive Predictive Maintenance Dashboard", className="text-white-50"),
+        html.H3("Análise de Saúde do Motor", className="mb-0 fw-bold"),
+        html.Small("Dashboard de Manutenção Preditiva Automotiva", className="text-white-50"),
     ], className="py-3 px-2")), className="bg-dark text-white mb-4 rounded-3"),
 
-    # Filters
+    # Filtros
     dbc.Card(dbc.CardBody(dbc.Row([
         dbc.Col([
-            html.Label("Engine Condition", className="fw-semibold small text-muted"),
+            html.Label("Condição do Motor", className="fw-semibold small text-muted"),
             dbc.RadioItems(
                 id="condition-filter",
                 options=[
-                    {"label": "  All",     "value": "all"},
-                    {"label": "  Healthy", "value": "1"},
-                    {"label": "  Faulty",  "value": "0"},
+                    {"label": "  Todos",     "value": "all"},
+                    {"label": "  Saudável",  "value": "1"},
+                    {"label": "  Com Falha", "value": "0"},
                 ],
                 value="all",
                 inline=True,
@@ -73,7 +73,7 @@ app.layout = dbc.Container([
             ),
         ], md=4),
         dbc.Col([
-            html.Label("Engine RPM Range", className="fw-semibold small text-muted"),
+            html.Label("Faixa de RPM do Motor", className="fw-semibold small text-muted"),
             dcc.RangeSlider(
                 id="rpm-range",
                 min=rpm_min,
@@ -87,21 +87,21 @@ app.layout = dbc.Container([
         ], md=8),
     ])), className="shadow-sm mb-4"),
 
-    # KPI Cards
+    # KPIs
     dbc.Row([
-        dbc.Col(kpi_card("Total Readings",   "kpi-total"),            md=3, className="mb-3"),
-        dbc.Col(kpi_card("Healthy Readings", "kpi-healthy", "success"), md=3, className="mb-3"),
-        dbc.Col(kpi_card("Faulty Readings",  "kpi-faulty",  "danger"),  md=3, className="mb-3"),
-        dbc.Col(kpi_card("Fault Rate",       "kpi-rate",    "warning"), md=3, className="mb-3"),
+        dbc.Col(kpi_card("Total de Leituras",  "kpi-total"),            md=3, className="mb-3"),
+        dbc.Col(kpi_card("Leituras Saudáveis", "kpi-healthy", "success"), md=3, className="mb-3"),
+        dbc.Col(kpi_card("Leituras com Falha", "kpi-faulty",  "danger"),  md=3, className="mb-3"),
+        dbc.Col(kpi_card("Taxa de Falhas",     "kpi-rate",    "warning"), md=3, className="mb-3"),
     ], className="g-3 mb-1"),
 
-    # Feature Importance — Pearson + Logistic Regression side by side
+    # Importância de Variáveis — Pearson + Regressão Logística lado a lado
     dbc.Row([
         dbc.Col(
             dbc.Card(dbc.CardBody([
                 html.P(
-                    "Univariate — measures each feature independently against the target. "
-                    "Saturated = derived features, muted = raw sensors.",
+                    "Univariada — mede cada variável independentemente em relação ao alvo. "
+                    "Cores saturadas = variáveis derivadas, suaves = sensores brutos.",
                     className="text-muted small mb-0",
                 ),
                 dcc.Graph(id="feature-importance-chart", config={"displayModeBar": False}),
@@ -111,8 +111,8 @@ app.layout = dbc.Container([
         dbc.Col(
             dbc.Card(dbc.CardBody([
                 html.P(
-                    "Multivariate — coefficients from Logistic Regression with all features "
-                    "standardised (mean=0, std=1). Controls for inter-feature correlations.",
+                    "Multivariada — coeficientes de Regressão Logística com todas as variáveis "
+                    "padronizadas (média=0, desvio=1). Controla correlações entre variáveis.",
                     className="text-muted small mb-0",
                 ),
                 dcc.Graph(id="regression-importance-chart", config={"displayModeBar": False}),
@@ -121,19 +121,19 @@ app.layout = dbc.Container([
         ),
     ], className="g-3"),
 
-    # Donut + Grouped bar
+    # Rosca + Barras agrupadas
     dbc.Row([
         dbc.Col(dbc.Card(dcc.Graph(id="donut-chart", config={"displayModeBar": False}), className="shadow-sm"), md=5, className="mb-4"),
         dbc.Col(dbc.Card(dcc.Graph(id="bar-chart",   config={"displayModeBar": False}), className="shadow-sm"), md=7, className="mb-4"),
     ], className="g-3"),
 
-    # Sensor box plots
+    # Box plots dos sensores
     dbc.Row(dbc.Col(
         dbc.Card(dcc.Graph(id="box-chart"), className="shadow-sm"),
         className="mb-4",
     )),
 
-    # Derived Features Analysis
+    # Análise de Variáveis Derivadas
     dbc.Row([
         dbc.Col(
             dbc.Card(dcc.Graph(id="health-gauge", config={"displayModeBar": False}), className="shadow-sm"),
@@ -145,17 +145,17 @@ app.layout = dbc.Container([
         ),
     ], className="g-3"),
 
-    # Correlation heatmap + Scatter
+    # Mapa de correlação + Dispersão
     dbc.Row([
         dbc.Col(dbc.Card(dcc.Graph(id="heatmap-chart"), className="shadow-sm"), md=6, className="mb-4"),
         dbc.Col(dbc.Card(dbc.CardBody([
             dbc.Row([
                 dbc.Col([
-                    html.Label("X Axis", className="small fw-semibold text-muted"),
+                    html.Label("Eixo X", className="small fw-semibold text-muted"),
                     dcc.Dropdown(id="scatter-x", options=sensor_options, value="engine_rpm", clearable=False),
                 ], md=6),
                 dbc.Col([
-                    html.Label("Y Axis", className="small fw-semibold text-muted"),
+                    html.Label("Eixo Y", className="small fw-semibold text-muted"),
                     dcc.Dropdown(id="scatter-y", options=sensor_options, value="fuel_pressure", clearable=False),
                 ], md=6),
             ], className="mb-2"),
@@ -163,7 +163,7 @@ app.layout = dbc.Container([
         ]), className="shadow-sm"), md=6, className="mb-4"),
     ], className="g-3"),
 
-    # Sequential line chart
+    # Gráfico de linha sequencial
     dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
         dbc.Row(dbc.Col([
             html.Label("Sensor", className="small fw-semibold text-muted"),
@@ -178,10 +178,10 @@ app.layout = dbc.Container([
         dcc.Graph(id="line-chart"),
     ]), className="shadow-sm"), className="mb-4")),
 
-    # Data table
+    # Tabela de dados
     dbc.Row(dbc.Col(dbc.Card(dbc.CardBody([
         dbc.Row([
-            dbc.Col(html.H6("Data Explorer", className="mb-0 fw-bold")),
+            dbc.Col(html.H6("Explorador de Dados", className="mb-0 fw-bold")),
             dbc.Col(html.Small(id="table-note", className="text-muted"), className="text-end"),
         ], className="mb-3 align-items-center"),
         html.Div(id="data-table"),
@@ -190,7 +190,7 @@ app.layout = dbc.Container([
 ], fluid=True, className="px-4 py-3", style={"backgroundColor": "#f0f2f5", "minHeight": "100vh"})
 
 
-# --- Helpers ---
+# --- Auxiliares ---
 
 def apply_filters(condition, rpm_range):
     dff = df_full.copy()
@@ -200,7 +200,7 @@ def apply_filters(condition, rpm_range):
     return dff
 
 
-# --- Callbacks ---
+# --- Callbacks (retornos de chamada) ---
 
 @app.callback(
     Output("kpi-total",    "children"),
@@ -261,10 +261,10 @@ def update_table(condition, rpm_range):
     total = len(dff)
     limit = 500
     dff_display = dff.head(limit).copy()
-    dff_display["Status"] = dff_display["engine_condition"].map({1: "Healthy", 0: "Faulty"})
+    dff_display["Status"] = dff_display["engine_condition"].map({1: "Saudável", 0: "Com Falha"})
 
     rename = {k: v.replace(" (°C)", "") for k, v in SENSOR_LABELS.items()}
-    rename["engine_condition"] = "Condition"
+    rename["engine_condition"] = "Condição"
     dff_display = dff_display.rename(columns=rename)
 
     ordered = [rename.get(c, c) for c in ["engine_rpm", "lub_oil_pressure", "fuel_pressure",
@@ -286,11 +286,11 @@ def update_table(condition, rpm_range):
         },
         style_cell={"fontSize": "12px", "padding": "8px", "fontFamily": "monospace"},
         style_data_conditional=[
-            {"if": {"filter_query": '{Status} = "Faulty"'},  "backgroundColor": "#fff5f5", "color": "#c0392b"},
-            {"if": {"filter_query": '{Status} = "Healthy"'}, "backgroundColor": "#f0faf4"},
+            {"if": {"filter_query": '{Status} = "Com Falha"'}, "backgroundColor": "#fff5f5", "color": "#c0392b"},
+            {"if": {"filter_query": '{Status} = "Saudável"'}, "backgroundColor": "#f0faf4"},
         ],
     )
-    note = f"Showing {min(limit, total):,} of {total:,} rows"
+    note = f"Exibindo {min(limit, total):,} de {total:,} registros"
     return table, note
 
 

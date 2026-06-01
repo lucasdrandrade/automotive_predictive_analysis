@@ -20,26 +20,26 @@ SENSOR_COLS = [
 ]
 
 SENSOR_LABELS = {
-    "engine_rpm":       "Engine RPM",
-    "lub_oil_pressure": "Lub Oil Pressure",
-    "fuel_pressure":    "Fuel Pressure",
-    "coolant_pressure": "Coolant Pressure",
-    "lub_oil_temp":     "Lub Oil Temp (°C)",
-    "coolant_temp":     "Coolant Temp (°C)",
+    "engine_rpm":       "RPM do Motor",
+    "lub_oil_pressure": "Pressão do Óleo",
+    "fuel_pressure":    "Pressão do Combustível",
+    "coolant_pressure": "Pressão do Arrefecimento",
+    "lub_oil_temp":     "Temp. do Óleo (°C)",
+    "coolant_temp":     "Temp. do Arrefecimento (°C)",
 }
 
 DERIVED_COLS = ["oil_efficiency", "coolant_efficiency"]
 
 DERIVED_LABELS = {
-    "oil_efficiency":     "Oil Efficiency",
-    "coolant_efficiency": "Coolant Efficiency",
+    "oil_efficiency":     "Eficiência do Óleo",
+    "coolant_efficiency": "Eficiência do Arrefecimento",
 }
 
 ALL_FEATURE_COLS = SENSOR_COLS + DERIVED_COLS
 
 ALL_FEATURE_LABELS = {**SENSOR_LABELS, **DERIVED_LABELS}
 
-CONDITION_LABELS = {1: "Healthy", 0: "Faulty"}
+CONDITION_LABELS = {1: "Saudável", 0: "Com Falha"}
 CONDITION_COLORS = {1: "#27ae60", 0: "#e74c3c"}
 
 
