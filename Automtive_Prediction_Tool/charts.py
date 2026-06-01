@@ -28,10 +28,10 @@ def condition_donut(df: pd.DataFrame) -> go.Figure:
         hole=0.55,
         marker=dict(colors=colors),
         textinfo="label+percent",
-        hovertemplate="%{label}: %{value:,} readings<extra></extra>",
+        hovertemplate="%{label}: %{value:,} leituras<extra></extra>",
     ))
     fig.update_layout(
-        title="Engine Condition Distribution",
+        title="Distribuição da Condição do Motor",
         showlegend=False,
         margin=dict(t=50, b=10, l=10, r=10),
         height=350,
@@ -55,12 +55,12 @@ def sensor_means_bar(df: pd.DataFrame) -> go.Figure:
             x=[SENSOR_LABELS[c] for c in SENSOR_COLS],
             y=normalized.values,
             marker_color=CONDITION_COLORS.get(cond, "#95a5a6"),
-            hovertemplate="<b>%{x}</b><br>Normalized mean: %{y:.3f}<extra></extra>",
+            hovertemplate="<b>%{x}</b><br>Média normalizada: %{y:.3f}<extra></extra>",
         ))
     fig.update_layout(
-        title="Normalized Sensor Means by Condition",
+        title="Médias Normalizadas dos Sensores por Condição",
         barmode="group",
-        yaxis_title="Normalized Value (0–1)",
+        yaxis_title="Valor Normalizado (0–1)",
         legend=dict(orientation="h", y=1.12, x=0.5, xanchor="center"),
         margin=dict(t=60, b=80, l=50, r=10),
         height=350,
@@ -91,7 +91,7 @@ def sensor_boxplots(df: pd.DataFrame) -> go.Figure:
             )
 
     fig.update_layout(
-        title="Sensor Distributions by Engine Condition",
+        title="Distribuições dos Sensores por Condição do Motor",
         height=500,
         margin=dict(t=60, b=20, l=50, r=10),
         boxmode="group",
@@ -105,7 +105,7 @@ def correlation_heatmap(df: pd.DataFrame) -> go.Figure:
     if df.empty or len(df) < 2:
         return _EMPTY
     all_cols = SENSOR_COLS + ["engine_condition"]
-    labels = [SENSOR_LABELS.get(c, c) for c in SENSOR_COLS] + ["Engine Condition"]
+    labels = [SENSOR_LABELS.get(c, c) for c in SENSOR_COLS] + ["Condição do Motor"]
     corr = df[all_cols].corr()
 
     fig = go.Figure(go.Heatmap(
@@ -122,7 +122,7 @@ def correlation_heatmap(df: pd.DataFrame) -> go.Figure:
         hovertemplate="<b>%{x}</b> vs <b>%{y}</b><br>r = %{z:.3f}<extra></extra>",
     ))
     fig.update_layout(
-        title="Correlation Matrix",
+        title="Matriz de Correlação",
         margin=dict(t=50, b=100, l=130, r=10),
         height=420,
     )
@@ -174,7 +174,7 @@ def line_chart(df: pd.DataFrame, sensor_col: str, max_points: int = 3000) -> go.
             marker=dict(color=CONDITION_COLORS.get(cond, "#95a5a6"), size=3, opacity=0.7),
         ))
     fig.update_layout(
-        xaxis_title="Reading Index",
+        xaxis_title="Índice de Leitura",
         yaxis_title=ALL_FEATURE_LABELS.get(sensor_col, sensor_col),
         legend=dict(orientation="h", y=1.0, x=0.5, xanchor="center"),
         margin=dict(t=20, b=50, l=60, r=10),
@@ -210,16 +210,16 @@ def feature_importance_bar(df: pd.DataFrame) -> go.Figure:
         marker_color=colors,
         text=[f"{v:+.3f}" for v in corr_df["correlation"]],
         textposition="outside",
-        hovertemplate="<b>%{y}</b><br>Correlation with Engine Condition: %{x:.3f}<extra></extra>",
+        hovertemplate="<b>%{y}</b><br>Correlação com a Condição do Motor: %{x:.3f}<extra></extra>",
     ))
     fig.add_vline(x=0, line_width=1.5, line_color="#555")
     fig.update_layout(
         title=dict(
-            text="Feature Correlation with Engine Condition  (★ = Derived Feature)",
+            text="Correlação das Variáveis com a Condição do Motor  (★ = Variável Derivada)",
             font=dict(size=14),
         ),
         xaxis=dict(
-            title="Pearson Correlation (r)",
+            title="Correlação de Pearson (r)",
             range=[-x_range, x_range],
             zeroline=False,
             gridcolor="#e8e8e8",
@@ -238,7 +238,7 @@ def derived_distributions(df: pd.DataFrame) -> go.Figure:
         return _EMPTY
     fig = make_subplots(
         rows=1, cols=2,
-        subplot_titles=["Oil Efficiency  (1 / RPM × Oil Temp)", "Coolant Efficiency  (Coolant Temp / RPM)"],
+        subplot_titles=["Eficiência do Óleo  (1 / RPM × Temp. Óleo)", "Eficiência do Arrefecimento  (Temp. Arrefecimento / RPM)"],
     )
     for idx, col in enumerate(["oil_efficiency", "coolant_efficiency"], start=1):
         for cond in sorted(df["engine_condition"].unique(), reverse=True):
@@ -256,7 +256,7 @@ def derived_distributions(df: pd.DataFrame) -> go.Figure:
                 row=1, col=idx,
             )
     fig.update_layout(
-        title="Derived Feature Distributions by Engine Condition",
+        title="Distribuições das Variáveis Derivadas por Condição do Motor",
         violinmode="group",
         height=380,
         margin=dict(t=60, b=30, l=60, r=20),
@@ -291,7 +291,7 @@ def health_score_gauge(df: pd.DataFrame, df_full: pd.DataFrame) -> go.Figure:
         },
     ))
     fig.update_layout(
-        title=dict(text="Engine Health Score", font=dict(size=15), x=0.5, xanchor="center"),
+        title=dict(text="Pontuação de Saúde do Motor", font=dict(size=15), x=0.5, xanchor="center"),
         margin=dict(t=70, b=20, l=30, r=30),
         height=300,
         paper_bgcolor="rgba(0,0,0,0)",
@@ -328,16 +328,16 @@ def regression_importance_bar(df: pd.DataFrame) -> go.Figure:
         marker_color=colors,
         text=[f"{v:+.3f}" for v in coef_df["coefficient"]],
         textposition="outside",
-        hovertemplate="<b>%{y}</b><br>Standardised Coefficient: %{x:.3f}<extra></extra>",
+        hovertemplate="<b>%{y}</b><br>Coeficiente Padronizado: %{x:.3f}<extra></extra>",
     ))
     fig.add_vline(x=0, line_width=1.5, line_color="#555")
     fig.update_layout(
         title=dict(
-            text="Feature Importance via Logistic Regression  (★ = Derived Feature)",
+            text="Importância das Variáveis via Regressão Logística  (★ = Variável Derivada)",
             font=dict(size=14),
         ),
         xaxis=dict(
-            title="Standardised Coefficient (features scaled to mean=0, std=1)",
+            title="Coeficiente Padronizado (variáveis com média=0, desvio=1)",
             range=[-x_range, x_range],
             zeroline=False,
             gridcolor="#e8e8e8",
